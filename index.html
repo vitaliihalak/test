@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="uk">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Підтримка Opti</title>
+<style>
+  body { font: 16px sans-serif; max-width: 560px; margin: 0 auto; padding: 16px; }
+  #log { height: 60vh; overflow-y: auto; border: 1px solid #ccc; border-radius: 8px; padding: 8px; }
+  .m { margin: 6px 0; padding: 8px 12px; border-radius: 12px; max-width: 85%; white-space: pre-wrap; }
+  .you { background: #dbeafe; margin-left: auto; }
+  .bot { background: #f1f1f1; }
+  .ticket { background: #fef3c7; font-size: 14px; }
+  form { display: flex; gap: 8px; margin-top: 8px; }
+  input { flex: 1; padding: 10px; font-size: 16px; }
+</style>
+<h3>Підтримка Opti</h3>
+<div id="log"></div>
+<form id="f"><input id="t" placeholder="Напишіть повідомлення..." autocomplete="off" autofocus><button>Надіслати</button></form>
+<script>
+  let sid = null, shown = 0;
+  const log = document.getElementById("log"), t = document.getElementById("t");
+  const add = (text, cls) => {
+    const d = document.createElement("div");
+    d.className = "m " + cls; d.textContent = text;
+    log.append(d); log.scrollTop = log.scrollHeight;
+  };
+  document.getElementById("f").onsubmit = async (e) => {
+    e.preventDefault();
+    const text = t.value.trim(); if (!text) return;
+    t.value = ""; add(text, "you");
+    try {
+      const r = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sid, message: text }) });
+      const d = await r.json();
+      if (!r.ok) return add("Помилка: " + (d.detail || r.status), "bot");
+      sid = d.session_id; add(d.reply, "bot");
+      d.tickets.slice(shown).forEach(x => add(`Звернення ${x.id} (${x.kind}): ${x.summary}`, "ticket"));
+      shown = d.tickets.length;
+    } catch { add("Немає зв'язку з сервером", "bot"); }
+  };
+</script>
